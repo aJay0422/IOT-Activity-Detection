@@ -53,4 +53,4 @@ def check(n_relevant=1, n_features=10):
 
 
 if __name__ == "__main__":
-    check()
+    check(n_relevant=2)
