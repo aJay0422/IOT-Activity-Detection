@@ -1,6 +1,7 @@
 import numpy as np
 import scipy
 import matplotlib.pyplot as plt
+from sklearn.preprocessing import normalize
 
 
 def slice_y(y, n_slices=10):
@@ -54,62 +55,105 @@ def plot1d(X, y, weights):
     plt.show()
 
 
-def get_save_summary(save):
-    summary = save.summary
-    print("Learned dirsctions: ", save.directions_)
-    print()
-
-    for cla in range(5):
-        M = summary["Ms"][cla]
-        M_evals, _ = scipy.linalg.eigh(M)
-        M_evals = M_evals[::-1]
-        M2 = summary["M2s"][cla]
-        M2_evals, _ = scipy.linalg.eigh(M2)
-        M2_evals = M2_evals[::-1]
-        print("Class Label: {}".format(cla))
-
-        print("Eigenvalues of (I-V):", M_evals)
-        print("Ratio of the 1st and 2nd eigenvalues:", M_evals[0] / M_evals[1])
-        print("Eigenvalues of (I-V)^2", M2_evals)
-        print("Ratio of the 1st and 2nd eigenvalues:", M2_evals[0] / M2_evals[1])
-
-        print("------------------------------")
-    M = summary["M"]
-    evals, _ = scipy.linalg.eigh(M)
-    evals = evals[::-1]
-    print("Eigenvalues of M:", evals)
-    print("Ratio of the 1st and 2nd eigenvalues:", evals[0] / evals[1])
+def plot_acc(accs, baseline):
+    x = range(1, len(accs) + 1)
+    plt.figure(figsize=(10, 8))
+    plt.scatter(x, accs)
+    plt.plot(x, accs, label="Test accuracy after SAVE")
+    plt.plot(x, [baseline] * len(accs), c='orange', label="Baseline")
+    plt.xlabel("number of directions")
+    plt.ylabel("test accuracy")
+    plt.legend(fontsize=13)
+    plt.show()
 
 
-def get_data(n_features=10, n_relevant=3, n_samples=10000, seed=42, mode='tt'):
+def get_save_summary(save, true_directions):
+  summary = save.summary
+  print("Learned directions:", save.directions_)
+  learned_n_relevant, n_features = save.directions_.shape
+  n_relevant = true_directions.shape[1]
+  if learned_n_relevant != n_relevant:
+    print("SAVE didn't learn the correct number of sufficient directions")
+    print("The true directions are")
+    print(true_directions.T)
+    # print(normalize(np.sum(true_directions.T, axis=0).reshape(1, -1)))
+    print("------------------------------")
+  else:
+    # normalize the true directions
+    true_directions_norm = normalize(true_directions.T)
+    print("True direction(standardized):", true_directions_norm)
+    print("------------------------------")
+
+  for cla in range(5):
+    M = summary["Ms"][cla]
+    M_evals, _ = scipy.linalg.eigh(M)
+    M_evals = M_evals[::-1]
+    M2 = summary["M2s"][cla]
+    M2_evals, _ = scipy.linalg.eigh(M2)
+    M2_evals = M2_evals[::-1]
+    print("Class Label: {}".format(cla))
+
+    print("Eigenvalues of (I-V):", M_evals)
+    print("Ratio of the 1st and 2nd eigenvalues:", M_evals[0] / M_evals[1])
+    print("Eigenvalues of (I-V)^2", M2_evals)
+    print("Ratio of the 1st and 2nd eigenvalues:", M2_evals[0] / M2_evals[1])
+
+    print("------------------------------")
+  M = summary["M"]
+  evals, _ = scipy.linalg.eigh(M)
+  evals = evals[::-1]
+  print("Eigenvalues of M:", evals)
+  print("Ratio of the 1st and 2nd eigenvalues:", evals[0] / evals[1])
+
+
+def get_data(n_features=10, n_relevant=3, n_samples=10000, seed=42, mode='tt', with_directions=True):
+    # set random seed
     np.random.seed(seed)
-    X = np.random.randn(n_samples, n_features)
 
-    def get_label(X, n_relevant, seed=seed):
-        np.random.seed(seed)
-        weights = np.random.rand(n_relevant)
-        weights = weights / sum(weights)
-        x_sufficient = np.sum(X[:, :n_relevant] * weights, axis=1)
-        x_sufficient = np.sin(x_sufficient * 0.2) * 5 + np.random.random(X.shape[0])
-        q = np.quantile(x_sufficient, q=(0.2, 0.4, 0.6, 0.8))
-        y = np.zeros(n_samples)
+    # generate original data by multivariate normal distribution with diagonal covariance matrix
+    m = np.zeros(n_features)
+    v = np.diag(np.random.randint(1, 6, n_features))
+    X = np.random.multivariate_normal(mean=m, cov=v, size=n_samples)
 
-        y[(x_sufficient <= q[0])] = 0
-        y[((q[0] < x_sufficient) * (x_sufficient <= q[1]))] = 1
-        y[((q[1] < x_sufficient) * (x_sufficient <= q[2]))] = 2
-        y[((q[2] < x_sufficient) * (x_sufficient <= q[3]))] = 3
-        y[(q[3] < x_sufficient)] = 4
-        return y
+    # whiten the data
+    mvec = np.mean(X, axis=0)
+    covm = np.cov(X, rowvar=False)
+    covm_sqrt_inv = scipy.linalg.inv(scipy.linalg.sqrtm(covm))
+    X = np.dot(X - mvec, covm_sqrt_inv)
 
-    Label = get_label(X, n_relevant)
+    # generate sufficient directions
+    np.random.seed(seed)
+    directions = np.random.random(size=(n_features, n_relevant)) * 1
+    s = np.dot(X, directions)  # sufficient data
+    y_suff = np.reciprocal(s)
+    y_suff = np.sum(y_suff, axis=1) + np.random.randn(n_samples) * 0.01
+
+    # generate labels
+    q = np.quantile(y_suff, q=(0.2, 0.4, 0.6, 0.8))
+    y = np.zeros(n_samples)
+
+    y[(y_suff <= q[0])] = 0
+    y[((q[0] < y_suff) * (y_suff <= q[1]))] = 1
+    y[((q[1] < y_suff) * (y_suff <= q[2]))] = 2
+    y[((q[2] < y_suff) * (y_suff <= q[3]))] = 3
+    y[(q[3] < y_suff)] = 4
+
+    Label = y
     perm = np.random.permutation(n_samples)
 
     if mode == 'tt':
         train_idx = perm[:int(n_samples * 0.8)]
         test_idx = perm[int(n_samples * 0.8):]
-        return X[train_idx, :], Label[train_idx], X[test_idx, :], Label[test_idx]
+        if with_directions:
+            return X[train_idx, :], Label[train_idx], X[test_idx, :], Label[test_idx], directions
+        else:
+            return X[train_idx, :], Label[train_idx], X[test_idx, :], Label[test_idx]
     elif mode == 'tvt':
         train_idx = perm[:int(n_samples * 0.8)]
         valid_idx = perm[int(n_samples * 0.8):int(n_samples * 0.9)]
         test_idx = perm[int(n_samples * 0.9):]
-        return X[train_idx, :], Label[train_idx], X[valid_idx, :], Label[valid_idx], X[test_idx, :], Label[test_idx]
+        if with_directions:
+            return X[train_idx, :], Label[train_idx], X[valid_idx, :], Label[valid_idx], X[test_idx, :], Label[
+                test_idx], directions
+        else:
+            return X[train_idx, :], Label[train_idx], X[valid_idx, :], Label[valid_idx], X[test_idx, :], Label[test_idx]
