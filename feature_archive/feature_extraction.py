@@ -25,7 +25,7 @@ def get_path_dict(video_path="D:/CU Files/IoT/IotLabData/data-clean/refrigerator
     print("{} of feature files".format(len(all_feature_name)))
     print(len(list(set(all_video_name).intersection(set(all_feature_name)))))
 
-    vf_path_dict = {}   # get a dictionary which records the video path and feature path of each sample
+    vf_path_dict = {}  # get a dictionary which records the video path and feature path of each sample
     for i, feature_name in enumerate(all_feature_name):
         try:
             idx = all_video_name.index(feature_name)
@@ -37,10 +37,11 @@ def get_path_dict(video_path="D:/CU Files/IoT/IotLabData/data-clean/refrigerator
 
     return vf_path_dict
 
+
 def extract_feature(backbone,
                     video_path,
                     feature_path,
-                    normalize={"mean":np.array([0.485, 0.456, 0.406]), "std":np.array([0.229, 0.224, 0.225])}):
+                    normalize={"mean": np.array([0.485, 0.456, 0.406]), "std": np.array([0.229, 0.224, 0.225])}):
     feature = np.load(feature_path, allow_pickle=True)
     boxes = feature["boxes"]
 
@@ -86,10 +87,6 @@ def extract_feature(backbone,
     return stacked_features
 
 
-
-
-
-
 if __name__ == "__main__":
     path_dict = get_path_dict(VIDEO_PATH, FEATURE_PATH)
 
@@ -97,12 +94,24 @@ if __name__ == "__main__":
     backbone = models.resnet50(pretrained=True)
     backbone.fc = nn.Identity()
 
+    failure_list = []
     for video_name, (video_path, feature_path) in path_dict.items():
         file_name = SAVE_PATH + video_name + ".mp4.npz"
         if os.path.exists(file_name):
             print(file_name, "saved")
             continue
         print(file_name, end=" ")
-        feature = extract_feature(backbone, video_path, feature_path)
-        np.savez(file_name, feature=feature)
-        print("saved")
+
+        try:
+            feature = extract_feature(backbone, video_path, feature_path)
+            np.savez(file_name, feature=feature)
+            print("saved")
+        except:
+            failure_list.append(video_name)
+            print("failed")
+
+    with open(r"failure_list.txt", "w") as fp:
+        for item in failure_list:
+            fp.write("%s\n" % item)
+
+    print("{} of videos failed".format(len(failure_list)))
