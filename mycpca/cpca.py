@@ -36,12 +36,13 @@ class CPCA(BaseEstimator, TransformerMixin):
         directions = evecs
         if self.n_directions == "auto":
             contrib = evals / np.sum(evals)
-            n_directions = int(sum(contrib < self.var_contrib) + 1)
+            cum_contrib = np.cumsum(contrib)
+            n_directions = int(sum(cum_contrib < self.var_contrib) + 1)
         self.n_directions_ = n_directions
 
         # normalize directions
         directions = normalize(
-            directions[:, self.n_directions_], norm="l2", axis=0
+            directions[:, :self.n_directions_], norm="l2", axis=0
         )
         self.directions_ = directions.T   # each row is a direction
         self.eigenvalues_ = evals[:self.n_directions_]
@@ -51,9 +52,9 @@ class CPCA(BaseEstimator, TransformerMixin):
     def transform(self, X):
         # ndarray dot is performed on the last 2 dimensions
         if isinstance(X, np.ndarray):
-            return np.dot(np.transpose(X, (0, 2, 1)), self.directions_.T)
+            return np.dot(np.transpose(X, (0, 2, 1)), self.directions_.T).transpose(0, 2, 1)
         if isinstance(X, list):
             rtList = []
             for i in range(len(X)):
-                rtList.append(np.dot(X[i].transpose(1, 0), self.directions_.T))
+                rtList.append(np.dot(X[i].transpose(1, 0), self.directions_.T).transpose(1,0))
             return rtList
