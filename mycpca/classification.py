@@ -23,15 +23,12 @@ def main1(test_ratio=0.15, seed=20220703):
     X_all = all_data["X"]
     Y_all = all_data["Y"]
 
-    # reshape data to (n_samples, n_features, T_k)
-    X_all = X_all.reshape(-1, 100, 34).transpose(0, 2, 1)
-    n_samples, n_features, seq_l = X_all.shape
-    test_size = int(n_samples * test_ratio)
-
     # set random seed
     np.random.seed(seed)
 
     # split data
+    n_samples = X_all.shape[0]
+    test_size = int(n_samples * test_ratio)
     perm = np.random.permutation(n_samples)
     test_idx = perm[:test_size]
     train_idx = perm[test_size:]
@@ -39,12 +36,6 @@ def main1(test_ratio=0.15, seed=20220703):
     Y_train = Y_all[train_idx]
     X_test = X_all[test_idx]
     Y_test = Y_all[test_idx]
-
-    # print("Shape of train data and label:", end=" ")
-    # print(X_train.shape, Y_train.shape)
-    # print("Shape of test data and label:", end=" ")
-    # print(X_test.shape, Y_test.shape)
-    # print("-" * 100)
 
     # scale data
     scaler = StandardScaler()
@@ -71,6 +62,10 @@ def main1(test_ratio=0.15, seed=20220703):
     summary["test_acc_base"] = test_acc_base
     summary["train_f1_base"] = train_f1_base
     summary["test_f1_base"] = test_f1_base
+
+    # reshape data to (n_samples, n_features, T_k)
+    X_train_scaled = X_train_scaled.reshape(-1, 100, 34).transpose(0, 2, 1)
+    X_test_scaled = X_test_scaled.reshape(-1, 100, 34).transpose(0, 2, 1)
 
     #CPCA
     cpca_directions = [i for i in range(5, 35, 5)]
