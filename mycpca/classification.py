@@ -43,10 +43,12 @@ def main1(test_ratio=0.15, seed=20220703):
     X_test_scaled = scaler.transform(X_test)
 
     # fit a baseline model
-    parameters = {"C": [0.01, 0.03, 0.01, 0.03, 1, 3]}
+    parameters = {"C": [0.001, 0.003, 0.01, 0.03, 0.01, 0.03, 1, 3]}
     clf = GridSearchCV(estimator=LogisticRegression(max_iter=1000, solver="newton-cg"),
                        param_grid=parameters)
     clf.fit(X_train_scaled, Y_train)
+    print(clf.cv_results_)
+    print(clf.best_params_)
     best_C = clf.best_params_["C"]
     lr_base = LogisticRegression(max_iter=1000,
                                  solver="newton-cg",
@@ -88,6 +90,8 @@ def main1(test_ratio=0.15, seed=20220703):
         clf = GridSearchCV(estimator=LogisticRegression(max_iter=1000, solver="newton-cg"),
                            param_grid=parameters)
         clf.fit(X_train_scaled_cpca, Y_train)
+        print(clf.cv_results_)
+        print(clf.best_params_)
         best_C = clf.best_params_["C"]
         lr_cpca = LogisticRegression(max_iter=1000, solver="newton-cg", C=best_C)
         lr_cpca.fit(X_train_scaled_cpca, Y_train)
@@ -114,6 +118,7 @@ def main1(test_ratio=0.15, seed=20220703):
 
 
 if __name__ == "__main__":
+    main1()
     df = pd.DataFrame(columns=["cpca_directions",
                                "Train Acc", "Train F1",
                                "Test Acc", "Test F1"])

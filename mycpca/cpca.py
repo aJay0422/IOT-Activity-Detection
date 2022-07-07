@@ -38,6 +38,10 @@ class CPCA(BaseEstimator, TransformerMixin):
             contrib = evals / np.sum(evals)
             cum_contrib = np.cumsum(contrib)
             n_directions = int(sum(cum_contrib < self.var_contrib) + 1)
+        else:
+            contrib = evals / np.sum(evals)
+            cum_contrib = np.cumsum(contrib)
+            self.var_contrib = cum_contrib[n_directions - 1]
         self.n_directions_ = n_directions
 
         # normalize directions
