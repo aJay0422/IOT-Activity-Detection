@@ -44,3 +44,18 @@ class IEAutoEncoder(nn.Module):
         x = self.encoder(x)
         x = self.decoder(x)
         return x
+
+
+class MLPBaseline(nn.Module):
+    def __init__(self, input_size=3400, hidden_size=1280, num_classes=5):
+        super(MLPBaseline, self).__init__()
+        self.fc = nn.Sequential(
+            nn.Linear(input_size, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, num_classes)
+        )
+
+    def forward(self, x):
+        x = x.flatten(1)
+        output = self.fc(x)
+        return output
