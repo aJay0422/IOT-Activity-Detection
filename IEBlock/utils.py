@@ -83,6 +83,7 @@ def prepare_encoded_data(encoder, trainloader, testloader):
 
 def get_loss_acc(model, dataloader, criterion):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    model.to(device)
     correct = 0
     total = 0
     total_loss = 0
@@ -156,6 +157,7 @@ def trainAE(model, epochs, trainloader, testloader, optimizer, criterion):
 def trainMLP(model, epochs, trainloader, testloader, optimizer, criterion, model_name):
     """train a mlp classifier"""
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    print("Trained on {}".format(device))
     model.to(device)
 
     # train model
