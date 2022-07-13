@@ -142,6 +142,7 @@ def trainAE(model, epochs, trainloader, testloader, optimizer, criterion):
 
         # save model weights if it's the best
         if test_loss < min_test_loss:
+            min_test_loss = test_loss
             torch.save({"model_state_dict": model.state_dict()}, "Best_AE.pt")
 
         print("Epoch: {}/{}  train loss: {}  test loss: {}".format(epoch + 1, epochs, train_loss, test_loss))
@@ -168,7 +169,7 @@ def trainMLP(model, epochs, trainloader, testloader, optimizer, criterion, model
             loss = criterion(outputs, Y_batch)
             # backward
             optimizer.zero_grad()
-            loss.backward()
+            loss.backward(retain_graph=True)
             optimizer.step()
 
             train_loss += loss.item()
@@ -182,10 +183,14 @@ def trainMLP(model, epochs, trainloader, testloader, optimizer, criterion, model
             # evaluate test
             test_loss, test_acc = get_loss_acc(model, testloader, nn.CrossEntropyLoss())
 
+        print("Epoch: {}/{}  train loss: {}  train acc: {}  test loss: {}  test acc: {}".format(epoch + 1, epochs,
+                                                                                                train_loss, train_acc,
+                                                                                                test_loss, test_acc))
+
         # save model weights if it's the best
         if test_acc > best_test_acc:
+            best_test_acc = test_acc
             torch.save({"model_state_dict": model.state_dict()}, "{}.pt".format(model_name))
-
-        print("Epoch: {}/{}  train loss: {}  train acc: {}  test loss: {}  test acc: {}".format(epoch + 1, epochs, train_loss, train_acc, test_loss, test_acc))
+            print("Saved")
 
     return model
