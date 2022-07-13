@@ -24,8 +24,8 @@ class mydataset(Dataset):
         return len(self.Label)
 
 
-def prepare_data(test_ratio, seed=20220707):
-    all_data = np.load(FEATURE_ARCHIVE + "all_feature_interp971.npz")
+def prepare_data(test_ratio, seed=20220712):
+    all_data = np.load(FEATURE_ARCHIVE + "all_feature_interp951.npz")
     X_all = all_data["X"]
     Y_all = all_data["Y"]
 
@@ -49,7 +49,7 @@ def prepare_data(test_ratio, seed=20220707):
     # create dataset and dataloader
     train_dataset = mydataset(X_train, Y_train)
     test_dataset = mydataset(X_test, Y_test)
-    trainloader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+    trainloader = DataLoader(train_dataset, batch_size=64, shuffle=True)
     testloader = DataLoader(test_dataset, batch_size=20)
 
     return trainloader, testloader
@@ -147,6 +147,9 @@ def trainAE(model, epochs, trainloader, testloader, optimizer, criterion):
 
         print("Epoch: {}/{}  train loss: {}  test loss: {}".format(epoch + 1, epochs, train_loss, test_loss))
 
+    best_checkpoint = torch.load("Best_AE.pt")
+    model.load_state_dict(best_checkpoint["model_state_dict"])
+
     return model
 
 
@@ -192,5 +195,9 @@ def trainMLP(model, epochs, trainloader, testloader, optimizer, criterion, model
             best_test_acc = test_acc
             torch.save({"model_state_dict": model.state_dict()}, "{}.pt".format(model_name))
             print("Saved")
+
+    best_checkpoint = torch.load("{}.pt".format(model_name))
+    model.load_state_dict(best_checkpoint["model_state_dict"])
+
 
     return model

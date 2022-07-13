@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import numpy as np
 from model import IEAutoEncoder, MLPBaseline
 from utils import prepare_data, prepare_encoded_data, trainMLP, get_loss_acc
 
@@ -20,6 +21,10 @@ if __name__ == "__main__":
     # extract feature using autoencoder
     encoder = ae.encoder
     trainloader_encoded, testloader_encoded= prepare_encoded_data(encoder, trainloader, testloader)
+    X_all = torch.cat([trainloader_encoded.dataset.Data, testloader_encoded.dataset.Data], dim=0).detach().numpy()
+    Y_all = torch.cat([trainloader_encoded.dataset.Label, testloader_encoded.dataset.Label], dim=0).detach().numpy()
+    np.savez("all_feature_971_1500.npz", X=X_all, Y=Y_all)
+
 
     # # train a new mlp
     # mlp = MLPBaseline(1500, 600, 5)

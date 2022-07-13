@@ -9,8 +9,8 @@ if __name__ == "__main__":
 
     # train MLP baseline model
     model = MLPBaseline()
-    EPOCHS = 200
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+    EPOCHS = 300
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-5)
     criterion = nn.CrossEntropyLoss()
     trained_mlp = trainMLP(model, EPOCHS, trainloader, testloader, optimizer, criterion, model_name="MLPBaseline")
 
@@ -21,7 +21,7 @@ if __name__ == "__main__":
 
     # train autoencoder
     model = IEAutoEncoder(34, 100, 15, 25, 10, 15)
-    EPOCHS = 500
+    EPOCHS = 1000
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
     criterion = nn.MSELoss()
     trained_model = trainAE(model, EPOCHS, trainloader, testloader, optimizer, criterion)
