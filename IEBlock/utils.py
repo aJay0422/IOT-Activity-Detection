@@ -103,7 +103,7 @@ def get_loss_acc(model, dataloader, criterion):
     return total_loss, acc
 
 
-def trainAE(model, epochs, trainloader, testloader, optimizer, criterion):
+def trainAE(model, epochs, trainloader, testloader, optimizer, criterion, model_name):
     """train an autoencoder"""
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model.to(device)
@@ -144,7 +144,7 @@ def trainAE(model, epochs, trainloader, testloader, optimizer, criterion):
         # save model weights if it's the best
         if test_loss < min_test_loss:
             min_test_loss = test_loss
-            torch.save({"model_state_dict": model.state_dict()}, "Best_AE.pt")
+            torch.save({"model_state_dict": model.state_dict()}, "{}.pt".format(model_name))
 
         print("Epoch: {}/{}  train loss: {}  test loss: {}".format(epoch + 1, epochs, train_loss, test_loss))
 
@@ -201,5 +201,16 @@ def trainMLP(model, epochs, trainloader, testloader, optimizer, criterion, model
     best_checkpoint = torch.load("{}.pt".format(model_name))
     model.load_state_dict(best_checkpoint["model_state_dict"])
 
-
     return model
+
+
+def get_mean_std(l):
+    """
+    Compute the averaged accuracy in percentile
+    :param l: a sequence of data
+    :return: mean ± std in string form
+    """
+    l = np.asarray(l)
+    m = np.mean(l)
+    std = np.std(l)
+    return "{:.2f}(±{:.2f})%".format(m * 100, std * 2 * 100 / np.sqrt(len(l)))

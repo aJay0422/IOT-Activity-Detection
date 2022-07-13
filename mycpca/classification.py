@@ -192,4 +192,4 @@ if __name__ == "__main__":
         df.loc[i + 1, "Test F1"] = "{:.2f}(±{:.2f})%".format(m_test[i] * 100, std_test[i] * 2 * 100 / np.sqrt(n))
 
     print(df)
-    df.to_csv("summart_table_CPCA.csv")
+    df.to_csv("summary_table_CPCA.csv")
