@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 import pandas as pd
+import numpy as np
+
 from train import INITIAL_SEED
 from model import IEAutoEncoder, MLPBaseline
 from utils import prepare_data, prepare_encoded_data, trainMLP, get_loss_acc, get_mean_std
@@ -47,7 +49,7 @@ if __name__ == "__main__":
 
         # summary
         mlp = MLPBaseline(1500, 600, 5)
-        mlp_checkpoint = torch.load("MLP.pt")
+        mlp_checkpoint = torch.load("MLP_checkpoints/MLP{}.pt".format(i+1))
         mlp.load_state_dict(mlp_checkpoint["model_state_dict"])
 
         _, mlp_base_train_acc = get_loss_acc(mlp_base, trainloader, nn.CrossEntropyLoss())
@@ -66,7 +68,8 @@ if __name__ == "__main__":
     df = pd.DataFrame(columns=["Baseline Train Acc",
                                "Baseline Test Acc",
                                "Reduced Train Acc",
-                               "Reduced Test Acc"])
+                               "Reduced Test Acc"],
+                      data=np.zeros((1, 4)))
     df.iloc[0, 0] = get_mean_std(summary["MLP Baseline Train Acc"])
     df.iloc[0, 1] = get_mean_std(summary["MLP Baseline Test Acc"])
     df.iloc[0, 2] = get_mean_std(summary["MLP reduced Train Acc"])
