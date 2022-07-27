@@ -106,6 +106,7 @@ def get_loss_acc(model, dataloader, criterion):
 def trainAE(model, epochs, trainloader, testloader, optimizer, criterion, model_name):
     """train an autoencoder"""
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    print("Trained on {}".format(device))
     model.to(device)
 
     # train model
@@ -148,7 +149,7 @@ def trainAE(model, epochs, trainloader, testloader, optimizer, criterion, model_
 
         print("Epoch: {}/{}  train loss: {}  test loss: {}".format(epoch + 1, epochs, train_loss, test_loss))
 
-    best_checkpoint = torch.load("Best_AE.pt")
+    best_checkpoint = torch.load("{}.pt".format(model_name))
     model.load_state_dict(best_checkpoint["model_state_dict"])
 
     return model
