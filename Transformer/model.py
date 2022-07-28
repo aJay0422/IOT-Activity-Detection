@@ -99,7 +99,7 @@ class Block(nn.Module):
     def __init__(self,
                  dim,
                  num_heads,
-                 mlp_ratio=4,
+                 mlp_ratio=4.0,
                  qkv_bias=False,
                  qk_scale=None,
                  drop_ratio=0.,
@@ -178,3 +178,19 @@ def _init_transformer_weights(m):
     elif isinstance(m, nn.BatchNorm1d):
         nn.init.zeros_(m.bias)
         nn.init.ones_(m.weight)
+
+
+def transformer_base():
+    model = Transformer(embed_dim=128, depth=8, num_heads=8,
+                        drop_ratio=0.2, attn_drop_ratio=0.2)
+    return model
+
+def transformer_large():
+    model = Transformer(embed_dim=256, depth=12, num_heads=16,
+                        drop_ratio=0.2, attn_drop_ratio=0.2)
+    return model
+
+def transformer_huge():
+    model = Transformer(embed_dim=512, depth=16, num_heads=32,
+                        drop_ratio=0.2, attn_drop_ratio=0.2)
+    return model
