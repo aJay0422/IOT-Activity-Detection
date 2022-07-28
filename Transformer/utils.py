@@ -77,3 +77,10 @@ def get_loss_acc(model, dataloader, criterion):
     total_loss = total_loss / num_batches
 
     return total_loss, acc
+
+
+def count_parameters(model, check_trainable=False):
+    if check_trainable:
+        return sum(p.numel() for p in model.parameters() if p.requires_grad)
+    else:
+        return sum(p.numel() for p in model.parameters())
