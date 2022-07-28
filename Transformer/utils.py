@@ -1,6 +1,10 @@
+import matplotlib.cm
 import numpy as np
 import torch
 import torch.nn as nn
+from matplotlib import pyplot as plt
+from sklearn.metrics import confusion_matrix
+
 from torch.utils.data import Dataset, DataLoader
 
 
@@ -84,3 +88,33 @@ def count_parameters(model, check_trainable=False):
         return sum(p.numel() for p in model.parameters() if p.requires_grad)
     else:
         return sum(p.numel() for p in model.parameters())
+
+
+def draw_confusion_matrix(y_pred, y_true, title="Transformer Huge", save=False):
+    plt.style.use("ggplot")
+    plt.rcParams["font.weight"] = "bold"
+    plt.rcParams["axes.labelweight"] = "bold"
+    plt.rcParams["axes.titleweight"] = "bold"
+    fig, ax = plt.subplots(1, 1, figsize=(3, 3), dpi=320)
+    conf_mx = confusion_matrix(y_true, y_pred)
+    ax.matshow(conf_mx, cmap=matplotlib.cm.get_cmap("Blues"))
+
+    n_classes = len(LABEL_ENCODER)
+    for i in range(n_classes):
+        for j in range(n_classes):
+            text = ax.text(j, i, conf_mx[i, j],
+                           ha="center",
+                           va="center",
+                           color="black")
+    ax.grid(False)
+
+    plt.xticks(np.arange(n_classes), [cls for cls in LABEL_ENCODER.keys()],
+               fontsize=6, rotation=45)
+    plt.yticks(np.arange(n_classes), [cls for cls in LABEL_ENCODER.keys()],
+               fontsize=6)
+    ax.xaxis.set_ticks_position("bottom")
+    plt.title("Confusion Matrix: {}".format(title), fontsize=10)
+    plt.show()
+
+    if save:
+        fig.savefig("Confusion Matrix {}.png".format(title), format="png")

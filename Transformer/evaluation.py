@@ -1,7 +1,7 @@
 import torch
 
 from model import transformer_base, transformer_large, transformer_huge
-from utils import get_loss_acc, count_parameters, prepare_data
+from utils import get_loss_acc, count_parameters, prepare_data, draw_confusion_matrix
 
 
 # prepare data
@@ -37,3 +37,13 @@ n_param3 = count_parameters(model3)
 print("Transformer base:  Test Accuracy: {:.2f}%  n_parameters: {}".format(acc1 * 100, n_param1))
 print("Transformer large: Test Accuracy: {:.2f}%  n_parameters: {}".format(acc2 * 100, n_param2))
 print("Transformer huge:  Test Accuracy: {:.2f}%  n_parameters: {}".format(acc3 * 100, n_param3))
+
+y_true = testloader.dataset.Label.cpu().numpy()
+logits3 = model3(testloader.dataset.Data.to(device))
+y_pred3 = torch.argmax(logits3, dim=1).cpu().numpy()
+
+draw_confusion_matrix(y_pred3, y_true, "Transformer Huge")
+
+
+
+
