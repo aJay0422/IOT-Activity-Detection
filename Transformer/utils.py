@@ -14,6 +14,11 @@ LABEL_ENCODER = {'no_interaction': 0,
                  'put_back_item': 2,
                  'screen_interaction': 3,
                  'take_out_item': 4}
+LABEL_DECODER = {0:"no_interaction",
+                 1:"open_close_fridge",
+                 2:"put_back_item",
+                 3:"screen_interaction",
+                 4:"take_out_item"}
 
 
 class mydataset(Dataset):
