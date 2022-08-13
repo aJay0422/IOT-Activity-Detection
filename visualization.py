@@ -29,11 +29,11 @@ model = transformer_huge()
 model.to(device)
 model.load_state_dict(torch.load("Transformer/Transformer_huge.pth", map_location=device))
 
-file = np.load("feature_archive/all_feature_interp951.npz")
+file = np.load("feature_archive/all_feature_interp951.npz", allow_pickle=True)
 X = file["X"].reshape(-1, 100, 34).transpose(0, 2, 1)
 Y = file["Y"]
-index = 0
-single_video = X[index][:, ::-1]
+index = 100
+single_video = X[index][:,:]
 cls = LABEL_DECODER[Y[index]]
 
 with torch.no_grad():

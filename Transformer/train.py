@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import os
 
 from utils import get_loss_acc, prepare_data
 from model import transformer_base, transformer_huge, transformer_large
@@ -46,11 +47,18 @@ def train(model, epochs, trainloader, testloader, optimizer, criterion, save_pat
 
 if __name__ == "__main__":
     seed = 20220728
-    trainloader, testloader = prepare_data(test_ratio=0.15, seed=seed)
+    experiment_path = "./experiment"
+    if not os.path.exists(experiment_path):
+        os.mkdir(experiment_path)
 
-    # train model
-    model = transformer_huge()
-    epochs = 500
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
-    criterion = nn.CrossEntropyLoss()
-    train(model, epochs, trainloader, testloader, optimizer, criterion, "Transformer_huge.pth")
+    for i in range(5):
+        this_seed = seed + i
+        save_path = experiment_path + "/Transformer_base_{}.pth".format(i+1)
+        trainloader, testloader = prepare_data(test_ratio=0.15, seed=this_seed)
+
+        # train model
+        model = transformer_base()
+        epochs = 400
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
+        criterion = nn.CrossEntropyLoss()
+        train(model, epochs, trainloader, testloader, optimizer, criterion, save_path)
