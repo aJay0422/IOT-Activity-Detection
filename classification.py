@@ -6,7 +6,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import f1_score, confusion_matrix
 from sklearn.decomposition import PCA
 
-from sliced import SlicedAverageVarianceEstimation
+# from sliced import SlicedAverageVarianceEstimation
 from mysliced.save import SAVE
 
 

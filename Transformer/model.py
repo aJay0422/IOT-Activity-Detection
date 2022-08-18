@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from functools import partial
 
 
 class Embedding(nn.Module):
@@ -105,16 +106,19 @@ class Block(nn.Module):
                  qk_scale=None,
                  drop_ratio=0.,
                  attn_drop_ratio=0.,
-                 act_layer=nn.GELU):
+                 act_layer=nn.GELU,
+                 norm_layer=nn.LayerNorm):
         super(Block, self).__init__()
+        self.norm1 = norm_layer(dim)
         self.attn = Attention(dim, num_heads=num_heads, qkv_bias=qkv_bias, qk_scale=qk_scale,
                               attn_drop_ratio=attn_drop_ratio, proj_drop_ratio=drop_ratio)
+        self.norm2 = norm_layer(dim)
         mlp_hidden_dim = int(dim * mlp_ratio)
         self.mlp = Mlp(in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer, drop=drop_ratio)
 
     def forward(self, x):
-        x = x + self.attn(x)
-        x = x + self.mlp(x)
+        x = x + self.attn(self.norm1(x))
+        x = x + self.mlp(self.norm2(x))
         return x
 
 
@@ -122,12 +126,13 @@ class Transformer(nn.Module):
     def __init__(self, n_features=34, num_classes=5, embed_dim=128, depth=3,
                  num_heads=8, mlp_ratio=4.0, qkv_bias=True,
                  qk_scale=None, drop_ratio=0., attn_drop_ratio=0.,
-                 embed_layer=Embedding, act_layer=None):
+                 embed_layer=Embedding, act_layer=None, norm_layer=None):
         super(Transformer, self).__init__()
         self.num_classes = num_classes
         self.n_features = n_features
         self.embed_dim = embed_dim
         self.num_tokens = 1
+        norm_layer = norm_layer or partial(nn.LayerNorm, eps=1e-6)
         act_layer = act_layer or nn.GELU
 
         self.embedding = embed_layer(n_features, embed_dim)
@@ -139,9 +144,10 @@ class Transformer(nn.Module):
 
         self.blocks = nn.Sequential(*[
             Block(dim=embed_dim, num_heads=num_heads, mlp_ratio=mlp_ratio, qkv_bias=qkv_bias, qk_scale=qk_scale,
-                  drop_ratio=drop_ratio, attn_drop_ratio=attn_drop_ratio, act_layer=act_layer)
+                  drop_ratio=drop_ratio, attn_drop_ratio=attn_drop_ratio, act_layer=act_layer, norm_layer=norm_layer)
             for i in range(depth)
         ])
+        self.norm = norm_layer(embed_dim)
 
         # Classifier head
         self.head = nn.Linear(self.embed_dim, num_classes)
@@ -161,6 +167,7 @@ class Transformer(nn.Module):
 
         x = self.pos_drop(x + self.pos_embed)
         x = self.blocks(x)
+        x = self.norm(x)
 
         return x[:, 0]
 
@@ -175,23 +182,25 @@ def _init_transformer_weights(m):
         nn.init.trunc_normal_(m.weight, std=0.01)
         if m.bias is not None:
             nn.init.zeros_(m.bias)
-
     elif isinstance(m, nn.BatchNorm1d):
+        nn.init.zeros_(m.bias)
+        nn.init.ones_(m.weight)
+    elif isinstance(m, nn.LayerNorm):
         nn.init.zeros_(m.bias)
         nn.init.ones_(m.weight)
 
 
-def transformer_base():
-    model = Transformer(embed_dim=128, depth=8, num_heads=8,
+def transformer_base(n_features=34):
+    model = Transformer(n_features=n_features, embed_dim=128, depth=8, num_heads=8,
                         drop_ratio=0.2, attn_drop_ratio=0.2)
     return model
 
-def transformer_large():
-    model = Transformer(embed_dim=256, depth=12, num_heads=16,
+def transformer_large(n_features=34):
+    model = Transformer(n_features=n_features, embed_dim=256, depth=12, num_heads=16,
                         drop_ratio=0.2, attn_drop_ratio=0.2)
     return model
 
-def transformer_huge():
-    model = Transformer(embed_dim=512, depth=16, num_heads=32,
+def transformer_huge(n_features=34):
+    model = Transformer(n_features=n_features, embed_dim=512, depth=16, num_heads=32,
                         drop_ratio=0.2, attn_drop_ratio=0.2)
     return model

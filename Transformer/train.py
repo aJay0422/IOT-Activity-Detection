@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import os
 
-from utils import get_loss_acc, prepare_data
+from utils import get_loss_acc, prepare_data, prepare_data_3D
 from model import transformer_base, transformer_huge, transformer_large
 
 
@@ -45,7 +45,7 @@ def train(model, epochs, trainloader, testloader, optimizer, criterion, save_pat
             print("Saved")
 
 
-if __name__ == "__main__":
+def experiment1(size="base"):
     seed = 20220728
     experiment_path = "./experiment"
     if not os.path.exists(experiment_path):
@@ -53,12 +53,39 @@ if __name__ == "__main__":
 
     for i in range(5):
         this_seed = seed + i
-        save_path = experiment_path + "/Transformer_base_{}.pth".format(i+1)
-        trainloader, testloader = prepare_data(test_ratio=0.15, seed=this_seed)
+        save_path = experiment_path + "/Transformer_{}_{}.pth".format(size, i + 1)
+        trainloader, testloader = prepare_data(test_ratio=0.20, seed=this_seed)
 
         # train model
-        model = transformer_base()
-        epochs = 400
+        if size == "base":
+            model = transformer_base()
+        elif size == "large":
+            model = transformer_large()
+        elif size == "huge":
+            model = transformer_huge()
+        epochs = 200
         optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
         criterion = nn.CrossEntropyLoss()
         train(model, epochs, trainloader, testloader, optimizer, criterion, save_path)
+
+
+def experiment2():
+    seed = 20220813
+    experiment_path = "./experiment_3D_feature"
+    if not os.path.exists(experiment_path):
+        os.mkdir(experiment_path)
+
+    for i in range(5):
+        this_seed = seed + i
+        save_path = experiment_path + "/Transformer_huge_{}.pth".format(i + 1)
+        trainloader, testloader = prepare_data_3D(test_ratio=0.2, seed=this_seed, scale=True)
+
+        # train model
+        model = transformer_huge(n_features=51)
+        epochs = 200
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
+        criterion = nn.CrossEntropyLoss()
+        train(model, epochs, trainloader, testloader, optimizer, criterion, save_path)
+
+if __name__ == "__main__":
+    experiment2()

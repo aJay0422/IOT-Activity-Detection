@@ -4,6 +4,8 @@ import torch
 import torch.nn as nn
 from matplotlib import pyplot as plt
 from sklearn.metrics import confusion_matrix
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 
 from torch.utils.data import Dataset, DataLoader
 
@@ -62,6 +64,33 @@ def prepare_data(test_ratio, seed=20220712):
     testloader = DataLoader(test_dataset, batch_size=20)
 
     return trainloader, testloader
+
+
+def prepare_data_3D(test_ratio=0.2, seed=42, scale=False):
+    file = np.load(FEATURE_ARCHIVE + "3D_features_interp951.npz", allow_pickle=True)
+    X_all = file["X"]   # shape(951, 100, 17, 3)
+    Y_all = file["Y"]
+
+    X_train, X_test, Y_train, Y_test = train_test_split(X_all, Y_all, test_size=test_ratio, random_state=seed, stratify=Y_all)
+    X_train = X_train.reshape(len(X_train), 100, -1).transpose((0, 2, 1))
+    X_test = X_test.reshape(len(X_test), 100, -1).transpose((0, 2, 1))
+
+    if scale:
+        m = np.mean(X_train, axis=(1,2)).reshape(-1,1,1)
+        v = np.std(X_train, axis=(1,2)).reshape(-1,1,1)
+        X_train = (X_train - m) / v
+        m = np.mean(X_test, axis=(1, 2)).reshape(-1,1,1)
+        v = np.std(X_test, axis=(1, 2)).reshape(-1,1,1)
+        X_test = (X_test - m) / v
+
+    # create dataset and dataloader
+    train_dataset = mydataset(X_train, Y_train)
+    test_dataset = mydataset(X_test, Y_test)
+    trainloader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+    testloader = DataLoader(test_dataset, batch_size=20)
+
+    return trainloader, testloader
+
 
 
 def get_loss_acc(model, dataloader, criterion):
