@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
 
-traj = np.load("feature_archive/3D_features/open_close_fridge_11_1625779861_1.mp4.npy")
+traj = np.load("feature_archive/3D_features/put_back_item_1_1613086093_1.mp4.npy")
 traj[:,:,1] *= -1
 # m = np.mean(traj)
 # v = np.std(traj)
@@ -64,10 +64,35 @@ def generate_video(legs=False, if_rotate=True):
         plt.close(fig)
         if if_rotate:
             angle = (int(3 * i) % 360)
-            image = cv2.putText(image, "{}".format(angle), (20, 60), cv2.FONT_ITALIC, 1, (0, 0, 255), thickness=2)
+            image = cv2.putText(image, "Angle: {}".format(angle), (20, 60), cv2.FONT_ITALIC, 1, (0, 0, 255), thickness=2)
         cv2.imshow("Video", image)
         cv2.waitKey(20)
         i += 1
+
+
+def augmentation(X_all=None, Y_all=None):
+    if X_all is None:
+        file = np.load("feature_archive/3D_features_interp951.npz", allow_pickle=True)
+        X_all = file["X"]
+        Y_all = file["Y"]
+
+    angles = [i * np.pi / 180 for i in [30, -30, 60, -60, 90, -90]]
+    X_aug = [X_all]
+    Y_aug = [Y_all]
+    for angle in angles:
+        aug = X_all.copy()
+        for i in range(aug.shape[0]):
+            for j in range(aug.shape[1]):
+                aug[i,j,:,:] = rotate(aug[i,j,:,:], angle=angle)
+        X_aug.append(aug)
+        Y_aug.append(Y_all)
+        print("{} finished".format(angle / np.pi * 180))
+
+    X_aug = np.concatenate(X_aug, axis=0)
+    Y_aug = np.concatenate(Y_aug, axis=0)
+    print(X_aug.shape)
+    print(Y_aug.shape)
+    np.savez("feature_archive/3D_features_interp951_aug.npz", X=X_aug, Y=Y_aug)
 
 
 
@@ -81,4 +106,6 @@ if __name__ == "__main__":
     #     draw_3D(coord, legs=legs)
 
 
-    generate_video(legs=True, if_rotate=False)
+    generate_video(legs=True, if_rotate=True)
+
+    # augmentation()
