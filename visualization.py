@@ -8,6 +8,7 @@ import os
 
 
 from Transformer.model import transformer_huge
+from Transformer.utils import prepare_data
 
 LABEL_DECODER = {0:"no_interaction",
                  1:"open_close_fridge",
@@ -107,7 +108,7 @@ fail_index = [107, 153, 247, 250, 270, 275, 358, 364, 371, 394, 443, 444, 578, 5
 #                29. Didn't do the "no interaction" in a common way
 
 
-index = fail_index[29]
+index = fail_index[0]
 single_video = X[index][:,:]
 failed_name = video_name[index]
 for path in all_feature_uninterp_path:

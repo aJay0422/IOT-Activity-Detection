@@ -1,5 +1,7 @@
 import torch
+import torch.nn as nn
 import numpy as np
+import matplotlib.pyplot as plt
 
 from model import transformer_base, transformer_large, transformer_huge
 from utils import get_loss_acc, count_parameters, prepare_data, draw_confusion_matrix, prepare_data_3D
@@ -25,24 +27,31 @@ from utils import get_loss_acc, count_parameters, prepare_data, draw_confusion_m
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 net = transformer_huge().to(device)
-net.load_state_dict(torch.load("experiment/Transformer_huge_1.pth", map_location=device))
 
-trainloader, testloader = prepare_data(seed=20220728)
-with torch.no_grad():
-    net.eval()
-    Y_pred = []
-    Y_true = []
-    for X_batch, Y_batch in testloader:
-        X_batch = X_batch.to(device)
-        Y_batch = Y_batch.to(device)
-        logits = net(X_batch)
-        pred = torch.argmax(logits, dim=1)
-        Y_pred.append(pred.cpu().numpy())
-        Y_true.append(Y_batch.cpu().numpy())
-    Y_pred = np.concatenate(Y_pred, axis=0)
-    Y_true = np.concatenate(Y_true, axis=0)
 
-draw_confusion_matrix(Y_pred, Y_true, save=True)
-print(np.mean(Y_pred == Y_true))
+all_accs = {}
+# no shuffle
+for i in range(5):
+    seed = 20220728 + i
+    trainloader, testloader = prepare_data(seed=seed, shuffle_frame=False)
+    all_accs["no shuffle"] = []
+    net.load_state_dict(torch.load(f"experiment_shuffle/no_shuffle/Transformer_huge_no_shuffle_{i+1}.pth", map_location=device))
+    _, acc = get_loss_acc(net, testloader, nn.CrossEntropyLoss())
+    all_accs["no shuffle"].append(acc)
 
+# shuffle
+for shuffle_id in [1,2,3]:
+    for i in range(5):
+        seed = 20220728 + i
+        trainloader, testloader = prepare_data(seed=seed, shuffle_frame=True)
+        all_accs[f"shuffle {shuffle_id}"] = []
+        net.load_state_dict(
+            torch.load(f"experiment_shuffle/shuffle/Transformer_huge_shuffle{shuffle_id}_{i+1}.pth", map_location=device))
+        _, acc = get_loss_acc(net, testloader, nn.CrossEntropyLoss())
+        all_accs[f"shuffle {shuffle_id}"].append(acc)
+
+for name in all_accs.keys():
+    print(name, end=" ")
+    print("Mean: {}".format(np.mean(all_accs[name])), end=" ")
+    print("Std: {}".format(np.std(all_accs[name])))
 
