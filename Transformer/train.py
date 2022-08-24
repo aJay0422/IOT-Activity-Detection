@@ -87,5 +87,46 @@ def experiment2():
         criterion = nn.CrossEntropyLoss()
         train(model, epochs, trainloader, testloader, optimizer, criterion, save_path)
 
+
+def experiment3():
+    """
+    Does shuffling affect the accuracy?
+    """
+    seed = 20220728
+    experiment_path = "./experiment_shuffle"
+    if not os.path.exists(experiment_path):
+        os.mkdir(experiment_path)
+
+    # no shuffle
+    setting_path = experiment_path + "/no_shuffle"
+    if not os.path.exists(setting_path):
+        os.mkdir(setting_path)
+    for i in range(5):
+        this_seed = seed + i
+        save_path = setting_path + f"/Transformer_huge_no_shuffle_{i+1}.pth"
+        trainloader, testloader = prepare_data(seed=this_seed, shuffle_frame=False)
+        model = transformer_huge()
+        epochs = 200
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
+        criterion = nn.CrossEntropyLoss()
+        train(model, epochs, trainloader, testloader, optimizer, criterion, save_path)
+
+    # shuffle
+    setting_path = experiment_path + "/shuffle"
+    if not os.path.exists(setting_path):
+        os.mkdir(setting_path)
+    for shuffle_id in range(3):
+        for i in range(5):
+            this_seed = seed + i
+            save_path = setting_path + f"/Transformer_huge_shuffle{shuffle_id+1}_{i+1}.pth"
+            trainloader_shuffle, testloader_shuffle = prepare_data(seed=this_seed, shuffle_frame=True)
+            model = transformer_huge()
+            epochs = 200
+            optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
+            criterion = nn.CrossEntropyLoss()
+            train(model, epochs, trainloader_shuffle, testloader_shuffle, optimizer, criterion, save_path)
+
+
+
 if __name__ == "__main__":
-    experiment2()
+    experiment3()

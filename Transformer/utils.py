@@ -35,7 +35,7 @@ class mydataset(Dataset):
         return len(self.Label)
 
 
-def prepare_data(test_ratio, seed=20220712):
+def prepare_data(test_ratio=0.2, seed=20220712, shuffle_frame=False):
     all_data = np.load(FEATURE_ARCHIVE + "all_feature_interp951.npz")
     X_all = all_data["X"]
     Y_all = all_data["Y"]
@@ -56,6 +56,11 @@ def prepare_data(test_ratio, seed=20220712):
     Y_train = Y_all[train_idx]
     X_test = X_all[test_idx]
     Y_test = Y_all[test_idx]
+
+    if shuffle_frame:
+        perm = np.random.permutation(100)
+        X_train = X_train[:,:,perm]
+        X_test = X_test[:,:,perm]
 
     # create dataset and dataloader
     train_dataset = mydataset(X_train, Y_train)
@@ -148,6 +153,7 @@ def draw_confusion_matrix(y_pred, y_true, title="Transformer Huge", save=False):
                fontsize=6)
     ax.xaxis.set_ticks_position("bottom")
     plt.title("Confusion Matrix: {}".format(title), fontsize=10)
+    plt.tight_layout()
     plt.show()
 
     if save:
