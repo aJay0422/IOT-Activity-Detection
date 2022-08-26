@@ -108,7 +108,8 @@ fail_index = [107, 153, 247, 250, 270, 275, 358, 364, 371, 394, 443, 444, 578, 5
 #                29. Didn't do the "no interaction" in a common way
 
 
-index = fail_index[0]
+index = fail_index[5]
+index = 1
 single_video = X[index][:,:]
 failed_name = video_name[index]
 for path in all_feature_uninterp_path:
@@ -118,6 +119,7 @@ for path in all_feature_uninterp_path:
         break
 
 single_video_uninterp = extract_feature(traj)
+print(single_video_uninterp.shape)
 
 
 def visualize(video, interp=True):

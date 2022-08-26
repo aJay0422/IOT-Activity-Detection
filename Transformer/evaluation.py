@@ -31,27 +31,30 @@ net = transformer_huge().to(device)
 
 all_accs = {}
 # no shuffle
+all_accs["no shuffle"] = []
 for i in range(5):
     seed = 20220728 + i
     trainloader, testloader = prepare_data(seed=seed, shuffle_frame=False)
-    all_accs["no shuffle"] = []
     net.load_state_dict(torch.load(f"experiment_shuffle/no_shuffle/Transformer_huge_no_shuffle_{i+1}.pth", map_location=device))
     _, acc = get_loss_acc(net, testloader, nn.CrossEntropyLoss())
     all_accs["no shuffle"].append(acc)
 
 # shuffle
 for shuffle_id in [1,2,3]:
+    all_accs[f"shuffle {shuffle_id}"] = []
     for i in range(5):
         seed = 20220728 + i
         trainloader, testloader = prepare_data(seed=seed, shuffle_frame=True)
-        all_accs[f"shuffle {shuffle_id}"] = []
         net.load_state_dict(
             torch.load(f"experiment_shuffle/shuffle/Transformer_huge_shuffle{shuffle_id}_{i+1}.pth", map_location=device))
         _, acc = get_loss_acc(net, testloader, nn.CrossEntropyLoss())
         all_accs[f"shuffle {shuffle_id}"].append(acc)
 
+
 for name in all_accs.keys():
     print(name, end=" ")
     print("Mean: {}".format(np.mean(all_accs[name])), end=" ")
     print("Std: {}".format(np.std(all_accs[name])))
+
+print(all_accs)
 
