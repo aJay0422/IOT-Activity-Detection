@@ -107,8 +107,11 @@ def get_loss_acc(model, dataloader, criterion):
     num_batches = 0
     with torch.no_grad():
         model.eval()
-        for X_batch, Y_batch in dataloader:
-            X_batch, Y_batch = X_batch.to(device), Y_batch.to(device)
+        for batch in dataloader:
+            X_batch = batch[0].to(device)
+            Y_batch = batch[1].to(device)
+            if len(batch) == 3:
+                index_batch = batch[2]
             total += len(Y_batch)
             num_batches += 1
             outputs = model(X_batch)

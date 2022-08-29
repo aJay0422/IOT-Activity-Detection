@@ -1,14 +1,19 @@
 """
 Train different classifiers with weighted samples
 """
+import os.path
+
 import numpy as np
 import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader, Dataset
 from sklearn.linear_model import LogisticRegression
 from sklearn.inspection import permutation_importance
 from sklearn.preprocessing import StandardScaler
+from tqdm import tqdm
 
 from Transformer.model import transformer_huge
-from Transformer.utils import prepare_data
+from Transformer.utils import prepare_data, get_loss_acc
 from confidence_interpolation import extract_scores
 
 
@@ -104,16 +109,161 @@ def weighted_Logistic(seed=20220712, method="average"):
     return acc_unweighted, acc_weighted
 
 
+class mydataset_w_index(Dataset):
+    def __init__(self, X, Y):
+        self.Data = torch.Tensor(X)
+        self.Label = torch.LongTensor(Y)
+        self.index = torch.LongTensor(np.arange(len(Y)))
+
+    def __getitem__(self, item):
+        return self.Data[item], self.Label[item], self.index[item]
+
+    def __len__(self):
+        return len(self.Label)
+
+
+def prepare_data_w_index(test_ratio=0.2, seed=20220712):
+    all_data = np.load("feature_archive/all_feature_interp951.npz", allow_pickle=True)
+    X_all = all_data["X"]
+    Y_all = all_data["Y"]
+
+    # reshape data to (n_samples, n_features, T_k)
+    X_all = X_all.reshape(-1, 100, 34).transpose(0, 2, 1)
+
+    # set random seed
+    np.random.seed(seed)
+
+    # split data
+    n_samples = X_all.shape[0]
+    test_size = int(n_samples * test_ratio)
+    perm = np.random.permutation(n_samples)
+    test_idx = perm[: test_size]
+    train_idx = perm[test_size:]
+    X_train = X_all[train_idx]
+    Y_train = Y_all[train_idx]
+    X_test = X_all[test_idx]
+    Y_test = Y_all[test_idx]
+
+    # create dataset and dataloader
+    train_dataset = mydataset_w_index(X_train, Y_train)
+    test_dataset = mydataset_w_index(X_test, Y_test)
+    trainloader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+    testloader = DataLoader(test_dataset, batch_size=20)
+
+    return trainloader, testloader, train_idx, test_idx
+
+
+def train_w_iterative_weight(model,
+                             epochs,
+                             trainloader, train_idx,
+                             testloader,
+                             optimizer,
+                             criterion,
+                             save_path):
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    print("Trained on {}".format(device))
+    model.to(device)
+
+    # train model
+    weights = np.load("feature_archive/video_confidence_attention.npy")
+    weight_train = weights[train_idx]
+    best_test_acc = 0
+    for epoch in range(epochs):
+        for batch in tqdm(trainloader):
+            model.train()
+            X_batch = batch[0].to(device)
+            Y_batch = batch[1].to(device)
+            if len(batch) == 3:
+                index_batch = batch[2]
+
+            # forward
+            logits = model(X_batch)
+            weight_batch = torch.Tensor(weight_train[index_batch]).to(device)
+            loss = criterion(logits, Y_batch, weight_batch)
+
+            # backward
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+        # evaluate
+        with torch.no_grad():
+            model.eval()
+            # evaluate train
+            train_loss, train_acc = get_loss_acc(model, trainloader, nn.CrossEntropyLoss())
+            # evaluate test
+            test_loss, test_acc = get_loss_acc(model, testloader, nn.CrossEntropyLoss())
+
+        print("Epoch{}/{}  train loss: {}  test loss: {}  train acc: {}  testacc: {}".format(epoch + 1, epochs,
+                                                                                             train_loss, test_loss,
+                                                                                             train_acc, test_acc))
+
+        # save model weights if  it's the best
+        if test_acc > best_test_acc:
+            best_test_acc = test_acc
+            torch.save(model.state_dict(), save_path)
+            print("Saved")
+
+
+def weighted_CrossEntropyLoss(logits, y, weights):
+    loss_function = nn.CrossEntropyLoss(reduction="none")
+    loss_tmp = loss_function(logits, y)
+    loss = loss_tmp * weights
+    return loss.sum() / weights.sum()
+
+
+def Transformer_weighted_train():
+    seed = 20220728
+    experiment_path = "Transformer/weighted_training"
+    if not os.path.exists(experiment_path):
+        os.mkdir(experiment_path)
+
+    for i in range(5):
+        this_seed = seed + i
+        trainloader, testloader, train_idx, test_idx = prepare_data_w_index(seed=this_seed)
+        model = transformer_huge()
+        epochs = 200
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
+        criterion = weighted_CrossEntropyLoss
+        save_path = experiment_path + f"/Transformer_huge_weighted_{i+1}.pth"
+        train_w_iterative_weight(model, epochs,
+                                 trainloader, train_idx, testloader,
+                                 optimizer, criterion,
+                                 save_path)
+
+
+def evaluate_weighted_Transformer():
+    model = transformer_huge().to(device)
+    seed = 20220728
+
+    accs_unweighted = []
+    accs_weighted = []
+    for i in range(5):
+        this_seed = seed + i
+        trainloader, testloader, train_idx, test_idx = prepare_data_w_index(seed=this_seed)
+
+        model.load_state_dict(torch.load(f"Transformer/experiment_shuffle/no_shuffle/Transformer_huge_no_shuffle_{i+1}.pth",
+                                         map_location=device))
+        _, acc = get_loss_acc(model, testloader, nn.CrossEntropyLoss())
+        accs_unweighted.append(acc)
+
+        model.load_state_dict(
+            torch.load(f"Transformer/weighted_training/Transformer_huge_weighted_{i+1}.pth",
+                       map_location=device))
+        _, acc = get_loss_acc(model, testloader, nn.CrossEntropyLoss())
+        accs_weighted.append(acc)
+
+    accs_unweighted = np.array(accs_unweighted)
+    accs_weighted = np.array(accs_weighted)
+    improvement = accs_weighted - accs_unweighted
+    for accs in [accs_unweighted, accs_weighted, improvement]:
+        m = np.mean(accs)
+        v = np.std(accs)
+        print(m, v)
+
+
 if __name__ == "__main__":
-    accs = np.zeros((3, 50))
-    for i in range(50):
-        acc_unweighted, acc_weighted = weighted_Logistic(20220712 + i, method="attention")
-        improve = acc_weighted - acc_unweighted
-        accs[:, i] = np.array([acc_unweighted, acc_weighted, improve])
-        print(str(i) + "finished")
-    print(np.sum(accs[2,:] > 0))
-    print(np.sum(accs[2,:] < 0))
-    m = np.mean(accs, axis=1)
-    v = np.std(accs, axis=1)
-    print(m)
-    print(v)
+    evaluate_weighted_Transformer()
+
+
+
