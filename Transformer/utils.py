@@ -10,7 +10,7 @@ from sklearn.preprocessing import StandardScaler
 from torch.utils.data import Dataset, DataLoader
 
 
-FEATURE_ARCHIVE = "../feature_archive/"
+FEATURE_ARCHIVE = "D:/Github repo/IOT-Activity-Detection/feature_archive/"
 LABEL_ENCODER = {'no_interaction': 0,
                  'open_close_fridge': 1,
                  'put_back_item': 2,

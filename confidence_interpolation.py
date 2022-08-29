@@ -26,6 +26,11 @@ for name in video_name:
             else:
                 all_uninterp_path.append(path)
 
+with open(r"feature_archive/all_uninterp_path.txt", "w") as fp:
+    for path in all_uninterp_path:
+        fp.write("{}\n".format(path))
+    print("Done")
+
 def extract_scores(keypoints):
     scores = []
     for _, k in keypoints:
@@ -52,11 +57,11 @@ def score_interp(scores, n_frames=100):
         )
     return result
 
-all_scores_by_frame = np.empty((len(Y), 100, 17))   # n_samples, n_keypoints, n_frames
-for i, path in enumerate(all_uninterp_path):
-    traj = np.load(path, allow_pickle=True)
-    scores_tmp = extract_scores(traj["keypoints"])
-    score_by_frame = score_interp(scores_tmp)
-    all_scores_by_frame[i,:,:] = score_by_frame
-
-np.save("feature_archive/confidence_scores_by_frame.npy", all_scores_by_frame)
+# all_scores_by_frame = np.empty((len(Y), 100, 17))   # n_samples, n_keypoints, n_frames
+# for i, path in enumerate(all_uninterp_path):
+#     traj = np.load(path, allow_pickle=True)
+#     scores_tmp = extract_scores(traj["keypoints"])
+#     score_by_frame = score_interp(scores_tmp)
+#     all_scores_by_frame[i,:,:] = score_by_frame
+#
+# np.save("feature_archive/confidence_scores_by_frame.npy", all_scores_by_frame)
