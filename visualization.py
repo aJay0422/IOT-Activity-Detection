@@ -25,7 +25,7 @@ def add_keypoints(img, keypoints):
     """
     for i in range(17):
         coord = (int(keypoints[i]), int(keypoints[i+17]))
-        img = cv2.circle(img, center=coord, radius=2, color=(0, 0, 255), thickness=cv2.FILLED)
+        img = cv2.circle(img, center=coord, radius=2, color=(0, 0, 0), thickness=cv2.FILLED)
         # img = cv2.putText(img, str(i), coord, cv2.FONT_ITALIC, 1, (0, 0, 255), thickness=2)
 
 
@@ -34,13 +34,13 @@ def add_keypoints(img, keypoints):
     for i in range(len(index)-1):
 
         img = cv2.line(img, (int(keypoints[index[i]]), int(keypoints[index[i]+17])),
-                       (int(keypoints[index[i+1]]), int(keypoints[index[i+1]+17])), color=(0, 0, 255))
+                       (int(keypoints[index[i+1]]), int(keypoints[index[i+1]+17])), color=(0, 0, 0))
 
     # add right arm
     index = [6, 8, 10]
     for i in range(len(index) - 1):
         img = cv2.line(img, (int(keypoints[index[i]]), int(keypoints[index[i] + 17])),
-                       (int(keypoints[index[i + 1]]), int(keypoints[index[i + 1] + 17])), color=(0, 0, 255))
+                       (int(keypoints[index[i + 1]]), int(keypoints[index[i + 1] + 17])), color=(0, 0, 0))
 
 
     return img
@@ -108,7 +108,8 @@ fail_index = [107, 153, 247, 250, 270, 275, 358, 364, 371, 394, 443, 444, 578, 5
 #                29. Didn't do the "no interaction" in a common way
 
 
-index = fail_index[2]
+index = fail_index[16]
+index = 192   # 192, 638, 1
 single_video = X[index][:,:]
 failed_name = video_name[index]
 for path in all_feature_uninterp_path:
@@ -131,20 +132,23 @@ def visualize(video, interp=True):
             weights = model.blocks[6].attn.attn[0, :, 0, 1:].cpu().numpy()
             weights = weights.mean(axis=0)
             weights = (weights - weights.min()) / (weights.max() - weights.min())
-            print(weights)
+
 
         i = 0
         while True:
-            img = np.ones((720, 1280))
+            img = np.ones((720, 1280, 3))
             img = add_keypoints(img, video[:,i % 100])
-            img = cv2.putText(img, "frame {}/100".format(i % 100 + 1), (20, 60), cv2.FONT_ITALIC, 1, (0, 0, 255), thickness=2)
-            img = cv2.putText(img, "True: " + cls, (20, 120), cv2.FONT_ITALIC, 1, (0, 0, 255), thickness=2)
-            img = cv2.putText(img, "Pred: " + y_pred, (20, 180), cv2.FONT_ITALIC, 1, (0, 0, 255), thickness=2)
-            img = cv2.putText(img, "Attention: {:.0f}%".format(weights[i % 100] * 100), (20, 240), cv2.FONT_ITALIC, 1, (0, 0, 255), thickness=2)
+            img = cv2.putText(img, "frame {}/100".format(i % 100 + 1), (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), thickness=2)
+            img = cv2.putText(img, "True: " + cls, (20, 120), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), thickness=2)
+            img = cv2.putText(img, "Pred: " + y_pred, (20, 180), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), thickness=2)
+            if weights[i%100] > 0.5:
+                img = cv2.putText(img, "Attention: {:.0f}%".format(weights[i % 100] * 100), (20, 240), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), thickness=2)
+            else:
+                img = cv2.putText(img, "Attention: {:.0f}%".format(weights[i % 100] * 100), (20, 240), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), thickness=2)
 
             cv2.imshow("Image", img)
             if weights[i%100] > 0.5:
-                cv2.waitKey(800)
+                cv2.waitKey(200)
             else:
                 cv2.waitKey(200)
             i += 1

@@ -65,3 +65,8 @@ def score_interp(scores, n_frames=100):
 #     all_scores_by_frame[i,:,:] = score_by_frame
 #
 # np.save("feature_archive/confidence_scores_by_frame.npy", all_scores_by_frame)
+
+if __name__ == "__main__":
+    file = np.load("feature_archive/confidence_scores_by_frame.npy")
+
+    stop = None
